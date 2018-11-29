@@ -52,7 +52,7 @@ class Manifest:
 
     def get_package(self, version=None):
         if version is None:
-            version = self.content['latest']['snapshot']
+            version = self.content['latest']['release']
 
         for i in self.content['versions']:
             if i['id'] == version:
