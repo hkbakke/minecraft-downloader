@@ -80,9 +80,7 @@ def get_checksum(filename):
     return h.hexdigest()
 
 def verify(filename, checksum):
-    if get_checksum(filename) == checksum:
-        return True
-    return False
+    return get_checksum(filename) == checksum
 
 def main():
     parser = argparse.ArgumentParser()
