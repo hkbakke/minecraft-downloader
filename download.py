@@ -12,7 +12,7 @@ MANIFEST_URL = 'https://launchermeta.mojang.com/mc/game/version_manifest.json'
 LOGGER = logging.getLogger()
 
 
-class Package:
+class Release:
     def __init__(self, manifest_url):
         self.manifest_url = manifest_url
         self._manifest = None
@@ -30,11 +30,11 @@ class Package:
         return self._manifest
 
     @property
-    def server_download_url(self):
+    def url(self):
         return self.manifest['downloads']['server']['url']
 
     @property
-    def server_download_sha1(self):
+    def checksum(self):
         return self.manifest['downloads']['server']['sha1']
 
 
@@ -51,13 +51,13 @@ class Manifest:
             self._content = json.loads(response.read().decode())
         return self._content
 
-    def get_package(self, version=None):
+    def get_release(self, version=None):
         if version is None:
             version = self.content['latest']['release']
 
         for i in self.content['versions']:
             if i['id'] == version:
-                return Package(i['url'])
+                return Release(i['url'])
 
 
 def download_file(url, filename):
@@ -97,22 +97,26 @@ def main():
     LOGGER.addHandler(console)
 
     manifest = Manifest()
-    package = manifest.get_package(args.version)
+    release = manifest.get_release(args.version)
     filename = None
 
     if args.versioned_filename:
-        filename = 'server-%s.jar' % package.version
+        filename = 'server-%s.jar' % release.version
     elif args.filename:
         filename = args.filename
     else:
-        filename = package.server_download_url.rsplit('/', 1)[1]
+        filename = release.url.rsplit('/', 1)[1]
+
+    if os.path.isfile(filename) and get_checksum(filename) == release.checksum:
+        LOGGER.info("'%s' already exists and is the correct version", filename)
+        return 0
 
     tmpfile = '%s.tmp' % filename
 
     try:
-        download_file(package.server_download_url, tmpfile)
+        download_file(release.url, tmpfile)
 
-        if verify(tmpfile, package.server_download_sha1):
+        if verify(tmpfile, release.checksum):
             os.rename(tmpfile, filename)
         else:
             LOGGER.error("Invalid checksum. Removing...")
