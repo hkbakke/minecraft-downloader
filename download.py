@@ -3,7 +3,6 @@
 import argparse
 from urllib.request import Request, urlopen
 import json
-import sys
 import logging
 import hashlib
 import os
@@ -61,17 +60,12 @@ class Manifest:
                 return Package(i['url'])
 
 
-def download_file(url, filename=None):
-    if filename is None:
-        filename = url.rsplit('/', 1)[1]
-
+def download_file(url, filename):
     request = Request(url)
     response = urlopen(request)
 
     with open(filename, 'wb') as f:
         f.write(response.read())
-
-    return filename
 
 def get_checksum(filename):
     h = hashlib.sha1()
@@ -110,15 +104,26 @@ def main():
         filename = 'server-%s.jar' % package.version
     elif args.filename:
         filename = args.filename
+    else:
+        filename = package.server_download_url.rsplit('/', 1)[1]
 
-    filename = download_file(package.server_download_url, filename)
-    
-    if not verify(filename, package.server_download_sha1):
-        LOGGER.info("Invalid checksum for '%s'. Removing...", filename)
-        os.unlink(filename)
+    tmpfile = '%s.tmp' % filename
+
+    try:
+        download_file(package.server_download_url, tmpfile)
+
+        if verify(tmpfile, package.server_download_sha1):
+            os.rename(tmpfile, filename)
+        else:
+            LOGGER.error("Invalid checksum. Removing...")
+    finally:
+        try:
+            os.unlink(tmpfile)
+        except FileNotFoundError:
+            pass
 
     LOGGER.info("Downloaded '%s'", filename)
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
