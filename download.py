@@ -6,6 +6,7 @@ import json
 import logging
 import hashlib
 import os
+import sys
 
 
 MANIFEST_URL = 'https://launchermeta.mojang.com/mc/game/version_manifest.json'
@@ -83,6 +84,7 @@ def main():
     parser.add_argument('--filename', metavar='FILENAME', help='set output filename')
     parser.add_argument('--version', metavar='VERSION', help='specify version if latest is not wanted')
     parser.add_argument('--versioned-filename', action='store_true', help='put version in filename')
+    parser.add_argument('--is-updated', action='store_true', help='only check if file is updated')
     args = parser.parse_args()
 
     if args.verbose:
@@ -111,6 +113,10 @@ def main():
         LOGGER.info("'%s' already exists and is the correct version", filename)
         return 0
 
+    if args.is_updated:
+        LOGGER.info("'%s' either do no exist or is not the correct version", filename)
+        return 1
+
     tmpfile = '%s.tmp' % filename
 
     try:
@@ -130,4 +136,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
